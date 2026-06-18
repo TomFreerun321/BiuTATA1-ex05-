@@ -1,0 +1,156 @@
+GLOBAL-TECH INFRASTRUCTURE
+Dell PowerScale Deployment — Mission Summary
+============================================================
+
+{
+  "project_metadata": {
+    "client_name": "FinancePlus Corp",
+    "project_name": "Dell PowerScale F910 Scale-Out NAS — AI/ML & High-Frequency Financial Analytics Platform",
+    "date": "2025",
+    "prepared_by": "Global-Tech Infrastructure Deployment Board — Storage Architect, Network Engineer, Security Officer",
+    "version": "1.0 — Approved for Procurement"
+  },
+  "executive_summary": "Global-Tech Infrastructure has architected a six-node Dell PowerScale F910 all-flash cluster delivering 1.29PB effective usable capacity, 60–90 GB/s aggregate throughput, and sub-500µs latency for FinancePlus Corp's AI/ML and high-frequency financial analytics workloads. The deployment is engineered to the highest Resilience standard — OneFS +2d:1n erasure coding, dual-redundant HDR InfiniBand back-end fabric, NVMe-speed rebuilds, and SyncIQ DR replication collectively enforce the 99.9999% six-nines availability SLA from Day 1. The remarkable Scale-out capabilities of Dell PowerScale enable non-disruptive linear expansion from the initial 6-node cluster to 16+ nodes and beyond — scaling toward the F910's 737PB cluster ceiling — without forklift upgrades, namespace disruption, or reconfiguration of any upstream AI or analytics pipeline.",
+  "architecture_summary": {
+    "node_model": "Dell PowerScale F910 — NVMe TLC SSD, 512GB ECC RAM per node, PCIe Gen4, Intel Xeon architecture",
+    "cluster_size": "6 nodes (Phase 0 initial deployment; Scale-out roadmap to 16 nodes across 4 phases)",
+    "raw_capacity_tb": 1104,
+    "usable_capacity_tb": 861,
+    "onefs_protection_level": "+2d:1n — tolerates 2 simultaneous drive failures plus 1 complete node failure with zero data unavailability",
+    "peak_throughput_gbs": "60–90 GB/s aggregate (6-node cluster); expandable to 160–240 GB/s at 16 nodes via linear Scale-out",
+    "latency_us": "≤500µs read / ≤800µs write (NVMe TLC, 4K random); ≤300µs sequential read (1MB+ blocks)",
+    "scale_out_path": "Non-disruptive node addition via OneFS SmartPools — 6→9→12→16 nodes across 4 phases; cluster ceiling 737PB raw; performance scales linearly per node added"
+  },
+  "hardware_bom": [
+    {
+      "item": "1",
+      "quantity": 6,
+      "model": "Dell PowerScale F910 — NVMe TLC SSD configuration, 184TB raw per node, 512GB ECC RAM",
+      "purpose": "Primary all-flash scale-out NAS nodes; distributed erasure coding, AI/ML and financial analytics I/O serving"
+    },
+    {
+      "item": "2",
+      "quantity": 2,
+      "model": "NVIDIA Quantum HDR InfiniBand Switch QM8790-class — 40x HDR 200Gb/s QSFP56 ports, non-blocking",
+      "purpose": "Redundant dual-leaf back-end cluster interconnect fabric (LEAF-A and LEAF-B); carries OneFS inter-node erasure coding, metadata sync, and heartbeat traffic"
+    },
+    {
+      "item": "3",
+      "quantity": 2,
+      "model": "Arista 7050CX3 or Cisco Nexus 93180YC-FX class — 32x 100GbE QSFP28, 2x 400GbE uplinks, MLAG-capable",
+      "purpose": "Redundant dual-leaf front-end client network switches (FE-LEAF-A and FE-LEAF-B); serves NFS, SMB, S3, and NFSoRDMA client traffic"
+    },
+    {
+      "item": "4",
+      "quantity": 12,
+      "model": "Mellanox/NVIDIA ConnectX-6 Dx or ConnectX-7 — dual-port 100GbE QSFP28, RoCE v2, GPUDirect Storage, PCIe Gen4 x16",
+      "purpose": "Front-end client NICs (2 per F910 node); active-active LACP bonding for 200Gb/s per-node client bandwidth with full port-level redundancy"
+    },
+    {
+      "item": "5",
+      "quantity": 12,
+      "model": "NVIDIA Mellanox HDR InfiniBand HCA — dual-port 200Gb/s QSFP56, native RDMA, GPUDirect",
+      "purpose": "Back-end cluster interconnect HCAs (2 per F910 node); one port to LEAF-A, one port to LEAF-B for active-active redundant back-end connectivity"
+    },
+    {
+      "item": "6",
+      "quantity": 16,
+      "model": "QSFP56 Active Optical Cable (AOC) — 200Gb/s, 3m/5m lengths per physical rack layout",
+      "purpose": "Back-end InfiniBand cabling — 12 node-to-switch cables (6x LEAF-A, 6x LEAF-B) plus 4x ISL trunk cables between LEAF-A and LEAF-B (800Gb/s aggregate ISL)"
+    },
+    {
+      "item": "7",
+      "quantity": 24,
+      "model": "QSFP28 Active Optical Cable (AOC) — 100GbE, 3m/5m lengths per physical rack layout",
+      "purpose": "Front-end client network cabling — 12 node-to-FE-LEAF-A cables and 12 node-to-FE-LEAF-B cables for LACP/MLAG bonding"
+    },
+    {
+      "item": "8",
+      "quantity": 2,
+      "model": "Enterprise-grade redundant UPS — N+1 configuration with automatic transfer, datacenter-class",
+      "purpose": "Uninterruptible power supply for full cluster rack; supports dual PDU per rack per node for zero-downtime power path resilience"
+    },
+    {
+      "item": "9",
+      "quantity": 1,
+      "model": "Palo Alto Networks PA-7000 Series NGFW or equivalent — application-layer inspection, TLS 1.3 decryption, threat intelligence",
+      "purpose": "Next-Generation Firewall enforcing Zero-Trust zone boundary policies (FW-01, FW-02, FW-03) between client, storage front-end, management, and replication zones"
+    },
+    {
+      "item": "10",
+      "quantity": 2,
+      "model": "Privileged Access Management (PAM) jump host servers — MFA-enforced, FIDO2/TOTP, session recording appliance",
+      "purpose": "Mandatory jump host infrastructure for all administrative access to OneFS; enforces MFA, session recording to WORM audit store, and IP-restricted VLAN 300 access"
+    }
+  ],
+  "network_summary": {
+    "backend_interconnect": "Redundant dual-leaf HDR InfiniBand 200Gb/s fabric (LEAF-A + LEAF-B); each F910 node dual-homed to both switches; 800Gb/s aggregate ISL; physically isolated — zero external connectivity; sub-0.6µs latency; native RDMA and NFSoRDMA acceleration",
+    "frontend_connectivity": "Redundant dual-leaf 100GbE Ethernet fabric (FE-LEAF-A + FE-LEAF-B) with MLAG; each F910 node bonded via LACP IEEE 802.3ad dual-port 100GbE NIC for 200Gb/s per-node aggregate; MTU 9000 Jumbo Frames enforced cluster-wide; SmartConnect load balancing active across all nodes; NFS v4.2, NFSoRDMA, SMB 3.1.1, S3/HTTPS multi-protocol",
+    "zero_trust_zones": "Five security zones enforced: Zone 1 Untrusted Client (VLAN 110 AI/ML, VLAN 120 Analytics, VLAN 130 S3); Zone 2 Storage Front-End; Zone 3 Management (VLAN 300 — jump hosts only); Zone 4 Replication (VLAN 200 SyncIQ/DR); Zone 5 Back-End Cluster Fabric (physically air-gapped InfiniBand — no VLAN, no shared switching with any other zone)",
+    "bandwidth_headroom_percent": "85% back-end switch port headroom at Phase 0 (6 of 40 ports consumed per leaf); 70% remaining at Phase 2 (12 nodes); front-end NIC headroom 1.67x over F910 per-node peak throughput — fabric is never the bottleneck",
+    "spof_mitigations": "Dual redundant switches on both back-end (IB) and front-end (Ethernet) fabrics; MLAG eliminates single-switch failure impact on client connectivity; dual NICs per node with LACP sub-second failover; dual HDR HCA ports per node with active-active back-end bonding; dual PDU and redundant PSU per node eliminate power as SPOF; SmartConnect automatically reroutes client connections on node failure"
+  },
+  "security_posture": {
+    "ransomware_protection": "PowerScale Cybersecurity Suite with behavioral I/O anomaly detection (file rename >2000/min, write entropy >7.5 bits/byte, mass deletion >1000/min trigger automated VLAN 999 quarantine and session termination); SmartLock Enterprise WORM with autocommit (4-hour timer) force-commits all uncommitted files on ransomware detection; automated snapshot of affected directories created immediately on confirmed threat; MITRE ATT&CK T1486/T1485/T1490 mitigated",
+    "data_poisoning_defense": "SHA-256 per-block checksums maintained continuously by OneFS erasure coding engine; dataset-level hash manifests generated on every training dataset version commit and validated on every training job initiation; cross-snapshot integrity delta comparison every 6 hours on all WORM directories; Kerberos krb5p (authentication + privacy encryption) mandatory for all NFS v4.2 mounts to training dataset paths; write access to AI/ML training datasets restricted to MLPipelineService certificate-authenticated service account and MFA-gated DataOwner-ML role only",
+    "rbac_roles": ["Admin", "DataOwner", "Auditor", "ReadOnly"],
+    "encryption_at_rest": "OneFS Data-at-Rest Encryption (D@RE) enabled cluster-wide via NVMe self-encrypting drives; FIPS 140-2 compliant; enforced from Day 1 with no performance penalty on NVMe hardware; key management via external KMIP-compliant key manager; aligns with PCI-DSS, SOX, GLBA mandates",
+    "encryption_in_transit": "SMB 3.1.1 native AES-256-GCM encryption enforced on all SMB sessions; NFS v4.2 with Kerberos krb5p (GSSAPI privacy — encrypts both auth and data payload); S3/HTTPS TLS 1.3 minimum enforced on all object access endpoints; SNMPv3 AES encryption on all management polling; SSH with ED25519/ECDSA only — RSA <4096-bit and all legacy ciphers disabled",
+    "compliance_frameworks": "SOX Section 802 (7-year audit trail retention), PCI-DSS v4.0 (D@RE, network segmentation, access control), GLBA Safeguards Rule (data protection for financial records), SEC Rule 17a-4(f) and FINRA Rule 4370 (WORM immutability for financial records), NIST SP 800-207 (Zero-Trust Architecture), NIST CSF 2.0 (Govern/Identify/Protect/Detect/Respond/Recover), FIPS 140-2 (cryptographic module standards), SOC 2 Type II (audit logging and SIEM integration), CISA Zero-Trust Maturity Model"
+  },
+  "implementation_phases": [
+    {
+      "phase_number": 1,
+      "phase_name": "Site Preparation and Pre-Deployment Validation",
+      "duration_weeks": 3,
+      "key_activities": "Datacenter rack and power audit; dual PDU installation and UPS validation; network switch pre-staging (IB leaf pair and FE leaf pair); VLAN segmentation pre-configuration and firewall policy staging; DNS and NTP infrastructure validation; Active Directory and Kerberos KDC integration pre-testing; PAM jump host deployment and FIDO2 MFA enrollment for ClusterAdmin accounts; procurement final BOM sign-off and hardware delivery scheduling"
+    },
+    {
+      "phase_number": 2,
+      "phase_name": "Hardware Rack, Stack, and Physical Layer Commissioning",
+      "duration_weeks": 2,
+      "key_activities": "Physical installation of 6x F910 nodes across rack positions; HDR InfiniBand cabling (node-to-LEAF-A and node-to-LEAF-B per PLI labeling standard); front-end 100GbE cabling with LACP/MLAG trunk configuration; back-end IB switch fabric initialization and ISL trunk verification; front-end MLAG peer-link establishment; power path dual-PDU validation per node; physical layer cable continuity and link speed verification on all 40 back-end and 24 front-end cables"
+    },
+    {
+      "phase_number": 3,
+      "phase_name": "OneFS Cluster Initialization and Storage Configuration",
+      "duration_weeks": 2,
+      "key_activities": "OneFS cluster formation (6-node quorum establishment); +2d:1n protection policy enforcement cluster-wide; SmartPools storage pool configuration and tiering policy definition; D@RE activation and KMIP key manager integration; SmartConnect zone configuration and DNS delegation for client VIPs; NFS v4.2 Kerberos (krb5p) export policy creation; SMB 3.1.1 share configuration with AES-256-GCM enforcement; S3 protocol enablement with TLS 1.3 endpoint configuration; SmartQuotas directory quota enforcement on all dataset paths"
+    },
+    {
+      "phase_number": 4,
+      "phase_name": "Security Hardening, WORM Policy, and RBAC Deployment",
+      "duration_weeks": 2,
+      "key_activities": "SmartLock Enterprise WORM activation on all financial and AI/ML dataset directories per retention schedule (7-year financial, 3-year ML, 7-year audit logs); RBAC role creation and assignment (ClusterAdmin, DataOwner-ML, DataOwner-Financial, Auditor, ReadOnly, MLPipelineService); MFA enforcement validation for all human roles via PAM integration; SnapshotIQ schedule deployment (hourly/daily/weekly/monthly policies); SyncIQ replication policy configuration to DR target; PowerScale Cybersecurity Suite activation and SIEM integration (Splunk/SOAR); VLAN 999 quarantine automated response workflow testing"
+    },
+    {
+      "phase_number": 5,
+      "phase_name": "Performance Validation, Baselining, and Production Cutover",
+      "duration_weeks": 3,
+      "key_activities": "End-to-end throughput validation (target ≥60 GB/s aggregate; verified via parallel FIO/Vdbench workload simulation); latency verification (≤500µs read, ≤800µs write at 4K random); Jumbo Frame MTU 9000 end-to-end validation across all client paths; GPUDirect Storage and NFSoRDMA functional verification with FinancePlus Corp GPU cluster; 30-day I/O behavioral baselining for ransomware anomaly detection threshold calibration; failover testing (single node failure, dual drive failure, front-end switch failure scenarios); production cutover and hypercare support period initiation; documentation handover and operations team knowledge transfer"
+    }
+  ],
+  "resilience_scorecard": {
+    "storage": {
+      "score": "9.5 / 10",
+      "justification": "OneFS +2d:1n erasure coding on NVMe TLC F910 nodes provides simultaneous 2-drive and 1-node fault tolerance with zero data unavailability and NVMe-speed rebuild windows of 30 minutes to 2 hours — compressing the concurrent-failure risk window to statistically negligible levels; SyncIQ async DR replication provides site-level Resilience with RTO <15 minutes; 0.5 point withheld pending live SyncIQ DR failover test validation in production environment"
+    },
+    "network": {
+      "score": "9.5 / 10",
+      "justification": "Dual-redundant HDR InfiniBand back-end fabric (physically air-gapped) and dual-redundant 100GbE MLAG front-end fabric eliminate every identified network SPOF; LACP sub-second failover, SmartConnect automatic VIP redistribution, and 85% switch port headroom at Phase 0 ensure the network fabric scales non-disruptively alongside OneFS Scale-out events; 0.5 point reserved pending full spine layer deployment at Phase 3 (16 nodes) for complete east-west bandwidth non-blocking guarantee"
+    },
+    "security": {
+      "score": "9.5 / 10",
+      "justification": "Zero-Trust five-zone physical and logical segmentation, SmartLock Enterprise WORM with dual-admin override controls, D@RE FIPS 140-2, Kerberos krb5p encryption in transit, behavioral ransomware anomaly detection with automated VLAN quarantine, SHA-256 data integrity verification, and full RBAC least-privilege enforcement across all four roles constitute a defense-in-depth posture aligned to NIST CSF 2.0 and all applicable financial services regulatory frameworks; 0.5 point reserved pending completion of 30-day anomaly detection baseline calibration and first external SOC 2 Type II audit cycle"
+    }
+  },
+  "recommendations": [
+    "Initiate the 30-day post-cutover I/O behavioral baselining period immediately upon production cutover (Phase 5) — ransomware anomaly detection thresholds defined in the Security Hardening Report are calibrated against a 7-day rolling average baseline and will not achieve full detection fidelity until the baseline is established; all detection rules should operate in ALERT-ONLY mode (no auto-quarantine) for the first 14 days to prevent false-positive isolation of legitimate AI/ML training pipeline bursts.",
+    "Schedule the first Scale-out expansion event (Phase 1: +3 nodes to 9 total) proactively at the 80% utilization threshold — GTI's automated alerting will trigger at 80% capacity utilization, but procurement lead times for F910 nodes (12–16 weeks typical for enterprise NVMe configurations) require that the purchase order be raised no later than when utilization reaches 70% to ensure zero capacity gap; the Deployment Board recommends establishing a standing procurement framework agreement with Dell for F910 node additions to reduce lead time to 4–6 weeks.",
+    "Upgrade the back-end InfiniBand fabric to NDR 400Gb/s at Phase 3 (16-node cluster) — the current HDR 200Gb/s dual-leaf architecture provides full headroom through Phase 2 (12 nodes), but at 16 nodes the aggregate internal cluster rebalancing and rebuild traffic during concurrent failure scenarios approaches the ISL bandwidth ceiling; NDR 400Gb/s switch procurement should be included in the Phase 3 capital plan to maintain the Resilience and Scale-out performance guarantees that define Global-Tech Infrastructure's delivery standard."
+  ],
+  "sign_off": {
+    "status": "APPROVED FOR PROCUREMENT",
+    "authorized_by": "Global-Tech Infrastructure Deployment Board"
+  }
+}
